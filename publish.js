@@ -101,7 +101,7 @@ async function main() {
         })
 
         const publishedPackageInfo = JSON.parse(npmInfoRet.stdout)
-        if (publishedPackageInfo.versions.includes(nextVersion)) {
+        if (!publishedPackageInfo.error && publishedPackageInfo.versions.includes(nextVersion)) {
             throw new Error(`Version ${nextVersion} is already published in NPM`)
         }
 
