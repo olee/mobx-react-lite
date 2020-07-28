@@ -11,11 +11,13 @@ import {
 } from "./reactionCleanupTracking"
 import { isUsingStaticRendering } from "./staticRendering"
 import { useForceUpdate } from "./utils"
+import { startObserverBatch, endObserverBatch, executeObserverBatch } from "./observerBatcher"
 
 export type ForceUpdateHook = () => () => void
 
 export interface IUseObserverOptions {
     useForceUpdate?: ForceUpdateHook
+    allowChangesDuringRender?: boolean
 }
 
 const EMPTY_OBJECT = {}
@@ -118,6 +120,9 @@ export function useObserver<T>(
     // can be invalidated (see above) once a dependency changes
     let rendering!: T
     let exception
+    if (options.allowChangesDuringRender !== false) {
+        startObserverBatch()
+    }
     reaction.track(() => {
         try {
             rendering = fn()
@@ -125,6 +130,15 @@ export function useObserver<T>(
             exception = e
         }
     })
+    if (options.allowChangesDuringRender !== false) {
+        const observerBatch = endObserverBatch()
+        // Run reactions after rendering of this component inside a useEffect without dependencies
+        React.useEffect(() => {
+            if (observerBatch) {
+                executeObserverBatch(observerBatch)
+            }
+        })
+    }
     if (exception) {
         throw exception // re-throw any exceptions catched during rendering
     }

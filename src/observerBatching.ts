@@ -1,24 +1,19 @@
-import { configure } from "mobx"
-
 import { getGlobal, getSymbol } from "./utils"
 
-interface IBatchedUpdates {
-    batchedUpdates<A, B>(callback: (a: A, b: B) => any, a: A, b: B): void
-    batchedUpdates<A>(callback: (a: A) => any, a: A): void
-    batchedUpdates(callback: () => any): void
-}
+type IReactionScheduler = (callback: () => any) => void
 
 const observerBatchingConfiguredSymbol = getSymbol("observerBatching")
 
-export const observerBatching = (reactionScheduler?: IBatchedUpdates) => {
-    if (typeof reactionScheduler === "function") {
-        configure({ reactionScheduler })
+export let reactionScheduler: IReactionScheduler = cb => cb()
+
+export const observerBatching = (_reactionScheduler?: IReactionScheduler) => {
+    if (typeof _reactionScheduler === "function") {
+        reactionScheduler = _reactionScheduler
     }
     getGlobal()[observerBatchingConfiguredSymbol] = true
 }
 
 export const observerBatchingOptOut = () => {
-    configure({ reactionScheduler: undefined })
     getGlobal()[observerBatchingConfiguredSymbol] = true
 }
 
